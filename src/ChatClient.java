@@ -4,6 +4,10 @@ import java.net.Socket;
 public class ChatClient {
     Socket connection;
 
+public class ChatClient extends Thread {
+
+    Socket conn;
+
     public static void main(String[] args) {
         try {
             ChatClient chatClient = new ChatClient();
