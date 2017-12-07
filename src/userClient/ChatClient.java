@@ -12,15 +12,10 @@ public class ChatClient extends Thread {
     public static String GOOD = "GOOD";
     public static String RETRY = "RETRY";
     public String status = RETRY;
-    Socket conn;
 
     public static void main(String[] args) {
-        try {
-            ChatClient chatClient = new ChatClient();
-            chatClient.run();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        ChatClient chatClient = new ChatClient();
+        chatClient.run();
     }
 
     public void run() {
