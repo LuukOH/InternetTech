@@ -24,6 +24,7 @@ public class ChatClient extends Thread {
     }
 
     public void run() {
+        Scanner scanner = new Scanner(System.in);
         while (status.equals(RETRY)){
             status = GOOD;
             Socket connection = null;
@@ -40,11 +41,12 @@ public class ChatClient extends Thread {
             try {
                 outputStream = connection.getOutputStream();
                 String input = "";
-                Scanner scanner = new Scanner(System.in);
                 PrintWriter writer = new PrintWriter(outputStream);
 
                 while (!input.equals("QUIT") && inputThread.isAlive()){
-                    input = scanner.nextLine();
+                    if (status.equals(GOOD)){
+                        input = scanner.nextLine();
+                    }
                     if (!input.equals("")){
                         messageList.add(input);
                         writer.println(input);
