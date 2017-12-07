@@ -1,3 +1,5 @@
+package userClient;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -10,6 +12,10 @@ public class ChatClient {
     public static String GOOD = "GOOD";
     public static String RETRY = "RETRY";
     public String status = RETRY;
+
+public class ChatClient extends Thread {
+
+    Socket conn;
 
     public static void main(String[] args) {
         try {
