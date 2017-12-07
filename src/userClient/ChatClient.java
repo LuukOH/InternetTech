@@ -12,7 +12,6 @@ public class ChatClient extends Thread {
     public static String GOOD = "GOOD";
     public static String RETRY = "RETRY";
     public String status = RETRY;
-    Socket conn;
 
     public static void main(String[] args) {
         try {
