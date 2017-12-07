@@ -31,14 +31,16 @@ public class InputThread extends Thread {
 
             while (!quit){
                 if (reader.ready()){
+                    ServerMessage message = ServerMessage.UNKNOWN;
                     line = reader.readLine();
-                    if (messageList.size() > 0){
-                        messageList.remove(messageList.size() - 1);
-                        dropRetry = false;
-                        noResponse = false;
-                    }
-                    if (line.equals("+OK Goodbye")){
-                        quit = true;
+
+
+                    message = parseServerAnswer(message,line);
+
+                    if (message.equals(ServerMessage.OK)){
+                        if (line.split(" ")[1].equals("Goodbye")){
+                            quit = true;
+                        }
                     }
                     System.out.println(line);
                 } else if (messageList.size() > 0){
@@ -49,13 +51,15 @@ public class InputThread extends Thread {
                                 PrintWriter writer = new PrintWriter(connection.getOutputStream());
                                 writer.println(messageList.get(messageList.size() - 1));
                                 writer.flush();
-                                dropRetry = true;
                             }
-                        } else if (timeTaken > 10000){
+                        } else if (timeTaken > 10000 && dropRetry){
                             time = System.currentTimeMillis();
                             System.out.println("connection failed! trying to reconnect. Type anything to reconnect");
                             chatClient.status = ChatClient.RETRY;
                             quit = true;
+                            dropRetry = false;
+                        } else {
+                            dropRetry = true;
                         }
                     } else {
                         time = System.currentTimeMillis();
@@ -67,5 +71,31 @@ public class InputThread extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public ServerMessage parseServerAnswer(ServerMessage message,String line) throws IOException{
+        String parse = line.split(" ")[0];
+        parse = parse.replace("+", "");
+        parse = parse.replace("-", "");
+        try {
+            message = ServerMessage.valueOf(parse);
+        } catch (IllegalArgumentException test){
+            message = ServerMessage.UNKNOWN;
+        }
+
+        if (message == ServerMessage.UNKNOWN){
+            if (messageList.size() > 0){
+                PrintWriter writer = new PrintWriter(connection.getOutputStream());
+                writer.println(messageList.get(messageList.size() - 1));
+                writer.flush();
+            }
+        } else {
+            if (messageList.size() > 0){
+                messageList.remove(messageList.size() - 1);
+                dropRetry = false;
+                noResponse = false;
+            }
+        }
+        return message;
     }
 }
