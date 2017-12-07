@@ -7,14 +7,11 @@ import java.net.Socket;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ChatClient {
+public class ChatClient extends Thread {
     Socket connection;
     public static String GOOD = "GOOD";
     public static String RETRY = "RETRY";
     public String status = RETRY;
-
-public class ChatClient extends Thread {
-
     Socket conn;
 
     public static void main(String[] args) {
@@ -26,10 +23,15 @@ public class ChatClient extends Thread {
         }
     }
 
-    public void run() throws IOException {
+    public void run() {
         while (status.equals(RETRY)){
             status = GOOD;
-            Socket connection = makeConnection();
+            Socket connection = null;
+            try {
+                connection = makeConnection();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             CopyOnWriteArrayList<String> messageList = new CopyOnWriteArrayList<>();
             InputThread inputThread = new InputThread(connection, messageList,this);
             inputThread.start();
