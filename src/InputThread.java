@@ -38,7 +38,8 @@ public class InputThread extends Thread {
                     message = parseServerAnswer(message,line);
 
                     if (message.equals(ServerMessage.OK)){
-                        if (line.split(" ")[1].equals("Goodbye")){
+                        String[] splitInput = line.split(" ");
+                        if (splitInput[splitInput.length-1].equals("Goodbye")){
                             quit = true;
                         }
                     }
