@@ -138,18 +138,25 @@ public class Server {
                                 writeToClient("+OK Goodbye");
                                 break;
                             case DM:
+                                doDM(message);
                                 break;
                             case MGRP:
+                                makeGroup(message);
                                 break;
                             case JGRP:
+                                joinGroup(message);
                                 break;
                             case LGRP:
+                                leaveGroup(message);
                                 break;
                             case KICK:
+                                doKICK(message);
                                 break;
                             case USRS:
+                                getUsers();
                                 break;
                             case GRPS:
+                                getGroups();
                                 break;
                             case UNKOWN:
                                 // Unkown command has been sent
@@ -189,6 +196,34 @@ public class Server {
                     writeToClient("+OK " + getUsername());
                 }
             }
+        }
+
+        private void doDM(Message message) {
+
+        }
+
+        private void makeGroup(Message message) {
+
+        }
+
+        private void joinGroup(Message message) {
+
+        }
+
+        private void leaveGroup(Message message) {
+
+        }
+
+        private void doKICK(Message message) {
+
+        }
+
+        private void getUsers() {
+
+        }
+
+        private void getGroups() {
+            
         }
 
         private void doBCST(Message message) {
