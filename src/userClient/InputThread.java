@@ -7,7 +7,19 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class InputThread extends Thread {
     public enum ServerMessage {
-        OK,BCST,ERR,UNKNOWN,HELO;
+        OK,
+        ERR,
+        UNKNOWN,
+        HELO,
+        BCST,
+        QUIT,
+        USRS,
+        DM,
+        MGRP,
+        GRPS,
+        JGRP,
+        LGRP,
+        KICK,
     }
     Socket connection;
     CopyOnWriteArrayList messageList;

@@ -48,7 +48,6 @@ public class ChatClient extends Thread {
                         writer.flush();
                     }
                 }
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
