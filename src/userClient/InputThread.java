@@ -45,6 +45,7 @@ public class InputThread extends Thread {
 
             while (!quit){
                 if (reader.ready()){
+                    dropRetry = false;
                     ServerMessage message = ServerMessage.UNKNOWN;
                     line = reader.readLine();
 
@@ -69,9 +70,12 @@ public class InputThread extends Thread {
                             }
                         } else if (timeTaken > 10000 && dropRetry){
                             time = System.currentTimeMillis();
-                            System.out.println("connection failed! trying to reconnect. Type anything to reconnect");
+                            System.out.println("connection failed! trying to reconnect.");
+                            connection = new Socket("localhost", 1337);
+                            inputStream = connection.getInputStream();
+                            reader = new BufferedReader(new InputStreamReader(inputStream));
+
                             chatClient.status = ChatClient.RETRY;
-                            quit = true;
                             dropRetry = false;
                         } else {
                             dropRetry = true;
@@ -112,5 +116,9 @@ public class InputThread extends Thread {
             }
         }
         return message;
+    }
+
+    public Socket getConnection(){
+        return connection;
     }
 }

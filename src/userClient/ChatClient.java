@@ -8,10 +8,9 @@ import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatClient extends Thread {
-    Socket connection;
-    public static String GOOD = "GOOD";
     public static String RETRY = "RETRY";
-    public String status = RETRY;
+    public static String GOOD = "GOOD";
+    public static String status = GOOD;
 
     public static void main(String[] args) {
         ChatClient chatClient = new ChatClient();
@@ -20,43 +19,45 @@ public class ChatClient extends Thread {
 
     public void run() {
         Scanner scanner = new Scanner(System.in);
-        while (status.equals(RETRY)){
-            status = GOOD;
-            Socket connection = null;
-            try {
-                connection = makeConnection();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            CopyOnWriteArrayList<String> messageList = new CopyOnWriteArrayList<>();
-            InputThread inputThread = new InputThread(connection, messageList,this);
-            inputThread.start();
+        Socket connection = makeConnection();
 
-            OutputStream outputStream;
-            try {
-                outputStream = connection.getOutputStream();
-                String input = "";
-                PrintWriter writer = new PrintWriter(outputStream);
+        CopyOnWriteArrayList<String> messageList = new CopyOnWriteArrayList<>();
+        InputThread inputThread = new InputThread(connection, messageList, this);
+        inputThread.start();
 
-                while (!input.equals("QUIT") && inputThread.isAlive()){
-                    if (status.equals(GOOD)){
-                        input = scanner.nextLine();
-                    }
-                    if (!input.equals("")){
-                        messageList.add(input);
-                        writer.println(input);
-                        writer.flush();
-                    }
+
+        OutputStream outputStream;
+        try {
+            outputStream = connection.getOutputStream();
+            String input = "";
+            PrintWriter writer = new PrintWriter(outputStream);
+
+            while (!input.equals("QUIT")) {
+                input = scanner.nextLine();
+
+                if (status.equals(RETRY)){
+                    writer = new PrintWriter(inputThread.getConnection().getOutputStream());
+                    status = GOOD;
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+                if (!input.equals("")) {
+                    messageList.add(input);
+                    writer.println(input);
+                    writer.flush();
+                }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    public Socket makeConnection() throws IOException {
-        connection = new Socket("localhost", 1337);
-        return connection;
+    public Socket makeConnection() {
+        try {
+            Socket connection = new Socket("localhost", 1337);
+            return connection;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

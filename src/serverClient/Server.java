@@ -18,6 +18,8 @@ public class Server {
 
     public Server(ServerConfiguration conf) {
         this.conf = conf;
+        Data data = Data.getInstance();
+        data.setConf(conf);
     }
 
     /**
@@ -29,13 +31,15 @@ public class Server {
         try {
             serverSocket = new ServerSocket(conf.SERVER_PORT);
             threads = new HashSet<>();
+            Data data = Data.getInstance();
+            data.setThreads(threads);
 
             while (true) {
                 // Wait for an incoming client-connection request (blocking).
                 Socket socket = serverSocket.accept();
 
                 // When a new connection has been established, start a new thread.
-                ClientThread ct = new ClientThread(socket,conf,threads);
+                ClientThread ct = new ClientThread(socket);
                 threads.add(ct);
                 new Thread(ct).start();
                 System.out.println("Num clients: " + threads.size());

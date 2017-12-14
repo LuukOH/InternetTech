@@ -2,7 +2,6 @@ package serverClient;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
@@ -12,6 +11,7 @@ import static serverClient.ServerState.FINISHED;
 public class ClientThread implements Runnable {
 
     private DataInputStream is;
+    private Data data;
     private OutputStream os;
     private Socket socket;
     private ServerState state;
@@ -19,11 +19,12 @@ public class ClientThread implements Runnable {
     private ServerConfiguration conf;
     private Set<ClientThread> threads;
 
-    public ClientThread(Socket socket, ServerConfiguration conf, Set threads) {
+    public ClientThread(Socket socket) {
+        data = Data.getInstance();
         this.state = INIT;
         this.socket = socket;
-        this.conf = conf;
-        this.threads = threads;
+        this.conf = data.getConf();
+        this.threads = data.getThreads();
     }
 
     public String getUsername() {
@@ -135,7 +136,7 @@ public class ClientThread implements Runnable {
         String[] messageAndReceiver = message.getPayload().split(" ");
         boolean found = false;
         if (messageAndReceiver.length < 2 || messageAndReceiver.length > 3){
-            writeToClient("-ERR incomplete message!");
+            writeToClient("-ERR message is not a valid format!");
         } else {
             String receiver = messageAndReceiver[0];
             String payload = messageAndReceiver[1];
@@ -155,7 +156,14 @@ public class ClientThread implements Runnable {
     }
 
     private void makeGroup(Message message) {
-
+        String[] fullMessage = message.getPayload().split(" ");
+        if (fullMessage.length > 1 || fullMessage[0].equals("")){
+            writeToClient("-ERR message is not a valid format!");
+        } else {
+            Group group = new Group(fullMessage[0],username);
+            data.addGroup(group);
+            writeToClient("+OK group made");
+        }
     }
 
     private void joinGroup(Message message) {
@@ -182,7 +190,16 @@ public class ClientThread implements Runnable {
     }
 
     private void getGroups() {
-
+        ArrayList<Group> groups = data.getGroups();
+        ArrayList groupNames = new ArrayList();
+        if (groups.size() == 0){
+            writeToClient("-ERR no groups exist");
+        } else {
+            for (int i = 0; i < groups.size(); i++) {
+                groupNames.add(groups.get(i).getName());
+            }
+            writeToClient("GRPS " + groupNames.toString());
+        }
     }
 
     private void doBCST(Message message) {
