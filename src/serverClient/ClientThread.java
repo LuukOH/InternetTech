@@ -236,6 +236,13 @@ public class ClientThread implements Runnable {
                     if (string.equals(username)) {
                         in = true;
                         group.removeUser(username);
+                        if (username.equals(group.getOwner())){
+                            if (group.getUsers().size() > 0){
+                                group.setOwner(group.getUsers().get(0));
+                            } else {
+                                data.removeGroup(group);
+                            }
+                        }
                         writeToClient("+OK you are removed from that group!");
                     }
                 }

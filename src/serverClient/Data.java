@@ -39,6 +39,10 @@ public class Data {
         groups.add(group);
     }
 
+    public void removeGroup(Group group){
+        groups.remove(group);
+    }
+
     public ArrayList<Group> getGroups() {
         return groups;
     }

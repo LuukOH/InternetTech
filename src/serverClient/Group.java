@@ -22,6 +22,10 @@ public class Group {
         return owner;
     }
 
+    public void setOwner(String owner){
+        this.owner = owner;
+    }
+
     public ArrayList<String> getUsers() {
         return users;
     }
