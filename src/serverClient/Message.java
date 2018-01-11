@@ -15,7 +15,9 @@ public class Message {
         ACCPT,
         UNKOWN,
         USRSGRP,
-        BCGRP
+        BCGRP,
+        FILE,
+        DND
     }
 
     private String line;

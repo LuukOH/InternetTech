@@ -9,7 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ChatClient extends Thread {
     public static String RETRY = "RETRY";
-    public static String GOOD = "GOOD";
+    private static String GOOD = "GOOD";
     public static String status = GOOD;
 
     public static void main(String[] args) {
