@@ -29,4 +29,8 @@ public class Group {
     public void addUser(String username){
         users.add(username);
     }
+
+    public void removeUser(String username){
+        users.remove(username);
+    }
 }

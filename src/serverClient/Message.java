@@ -12,7 +12,9 @@ public class Message {
         JGRP,
         LGRP,
         KICK,
-        UNKOWN
+        UNKOWN,
+        USRSGRP,
+        BCGRP
     }
 
     private String line;

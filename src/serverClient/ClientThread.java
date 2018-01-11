@@ -31,10 +31,6 @@ public class ClientThread implements Runnable {
         return username;
     }
 
-    public OutputStream getOutputStream() {
-        return os;
-    }
-
     public void run() {
         try {
             // Create input and output streams for the socket.
@@ -92,6 +88,12 @@ public class ClientThread implements Runnable {
                         case GRPS:
                             getGroups();
                             break;
+                        case USRSGRP:
+                            getUsersFromGroup(message);
+                            break;
+                        case BCGRP:
+                            doBCSTGroup(message);
+                            break;
                         case UNKOWN:
                             // Unkown command has been sent
                             writeToClient("-ERR Unkown command");
@@ -109,25 +111,27 @@ public class ClientThread implements Runnable {
 
     private void doHELO(Message message) {
         // Check username format.
-        boolean isValidUsername = message.getPayload().matches("[a-zA-Z0-9_]{3,14}");
-        if(!isValidUsername) {
-            state = FINISHED;
-            writeToClient("-ERR username has an invalid format (only characters, numbers and underscores are allowed)");
-        } else {
-            // Check if user already exists.
-            boolean userExists = false;
-            for (ClientThread ct : threads) {
-                if (ct != this && message.getPayload().equals(ct.getUsername())) {
-                    userExists = true;
-                    break;
-                }
-            }
-            if (userExists) {
-                writeToClient("-ERR user already logged in");
+        if (!state.equals(CONNECTED)){
+            boolean isValidUsername = message.getPayload().matches("[a-zA-Z0-9_]{3,14}");
+            if(!isValidUsername) {
+                state = FINISHED;
+                writeToClient("-ERR username has an invalid format (only characters, numbers and underscores are allowed)");
             } else {
-                state = CONNECTED;
-                this.username = message.getPayload();
-                writeToClient("+OK " + getUsername());
+                // Check if user already exists.
+                boolean userExists = false;
+                for (ClientThread ct : threads) {
+                    if (ct != this && message.getPayload().equals(ct.getUsername())) {
+                        userExists = true;
+                        break;
+                    }
+                }
+                if (userExists) {
+                    writeToClient("-ERR user already logged in");
+                } else {
+                    state = CONNECTED;
+                    this.username = message.getPayload();
+                    writeToClient("+OK " + getUsername());
+                }
             }
         }
     }
@@ -135,7 +139,7 @@ public class ClientThread implements Runnable {
     private void doDM(Message message) {
         String[] messageAndReceiver = message.getPayload().split(" ");
         boolean found = false;
-        if (messageAndReceiver.length < 2 || messageAndReceiver.length > 3){
+        if (messageAndReceiver.length < 2 || messageAndReceiver.length > 2){
             writeToClient("-ERR message is not a valid format!");
         } else {
             String receiver = messageAndReceiver[0];
@@ -156,26 +160,120 @@ public class ClientThread implements Runnable {
     }
 
     private void makeGroup(Message message) {
-        String[] fullMessage = message.getPayload().split(" ");
-        if (fullMessage.length > 1 || fullMessage[0].equals("")){
+        boolean failed = oneArgumentCheck(message);
+        if (failed){
             writeToClient("-ERR message is not a valid format!");
         } else {
-            Group group = new Group(fullMessage[0],username);
+            Group group = new Group(message.getPayload().split(" ")[0],username);
             data.addGroup(group);
             writeToClient("+OK group made");
         }
     }
 
     private void joinGroup(Message message) {
+        boolean failed = oneArgumentCheck(message);
+        if (failed){
+            writeToClient("-ERR message is not a valid format!");
+        } else {
+            boolean alreadyIn = false;
 
+            Group group = doesGroupExist(message);
+
+            if (group != null){
+                for (String string : group.getUsers()) {
+                    if (string.equals(username)) {
+                        writeToClient("-ERR you are already in that group!");
+                        alreadyIn = true;
+                    }
+                }
+
+                if (!alreadyIn) {
+                    group.addUser(username);
+                    writeToClient("+OK you were added in the group!");
+                }
+            } else {
+                writeToClient("-ERR group doesn't exist!");
+            }
+        }
+    }
+
+    private Group doesGroupExist(Message message){
+        for (Group group : data.getGroups()) {
+            if (group.getName().equals(message.getPayload().split(" ")[0])){
+                return group;
+            }
+        }
+        return null;
+    }
+
+    private boolean oneArgumentCheck(Message message){
+        String[] fullMessage = message.getPayload().split(" ");
+        if (fullMessage.length > 1 || fullMessage[0].equals("")){
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private void leaveGroup(Message message) {
+        boolean failed = oneArgumentCheck(message);
+        if (failed){
+            writeToClient("-ERR message is not a valid format!");
+        } else {
+            boolean in = false;
 
+            Group group = doesGroupExist(message);
+
+            if (group != null){
+                for (String string : group.getUsers()) {
+                    if (string.equals(username)) {
+                        in = true;
+                        group.removeUser(username);
+                        writeToClient("+OK you are removed from that group!");
+                    }
+                }
+                if (!in) {
+                    writeToClient("-ERR you are not in that group!");
+                }
+            } else {
+                writeToClient("-ERR group doesn't exist!");
+            }
+        }
     }
 
     private void doKICK(Message message) {
+        String[] fullMessage = message.getPayload().split(" ");
+        if (fullMessage.length < 2 || fullMessage.length > 2){
+            writeToClient("-ERR message is not a valid format!");
+        } else {
+            boolean userIn = false;
 
+            Group group = doesGroupExist(message);
+
+            if (group != null){
+                if (group.getOwner().equals(username)){
+                    for (String string: group.getUsers()){
+                        if (string.equals(fullMessage[1]) && !username.equals(fullMessage[1])){
+                            userIn = true;
+                            writeToClient("+OK user is kicked!");
+                            group.removeUser(fullMessage[1]);
+                            for (ClientThread ct: threads){
+                                if (ct.username.equals(string)){
+                                    ct.writeToClient("GRPS you have been kicked from group: " + group.getName());
+                                }
+                            }
+                        }
+                    }
+                    if (!userIn){
+                        writeToClient("-ERR The specified user is not in this group! (remember you can't kick yourself as owner)");
+                    }
+                } else {
+                    writeToClient("-ERR you have no right to kick a user in this group!");
+                }
+            } else {
+                writeToClient("-ERR group doesn't exist!");
+            }
+        }
     }
 
     private void getUsers() {
@@ -210,6 +308,49 @@ public class ClientThread implements Runnable {
             }
         }
         writeToClient("+OK");
+    }
+
+    private void doBCSTGroup(Message message){
+        String[] fullMessage = message.getPayload().split(" ");
+        if (fullMessage.length < 2 || fullMessage.length > 2){
+            writeToClient("-ERR message is not a valid format!");
+        } else {
+            Group group = doesGroupExist(message);
+
+            if (group != null){
+                for (String useName :group.getUsers()){
+                    for (ClientThread ct: threads){
+                        if (useName.equals(ct.getUsername())){
+                            if (!useName.equals(username)){
+                                ct.writeToClient("BCSTGRP [" + group.getName() + "] " + fullMessage[1]);
+                            }
+                        }
+                    }
+                }
+                writeToClient("+OK");
+            } else {
+                writeToClient("-ERR group doesn't exist!");
+            }
+        }
+    }
+
+    private void getUsersFromGroup(Message message){
+        boolean failed = oneArgumentCheck(message);
+        ArrayList userList = new ArrayList();
+        if (failed){
+            writeToClient("-ERR message is not a valid format!");
+        } else {
+            Group group = doesGroupExist(message);
+
+            if (group != null){
+                for (String username: group.getUsers()){
+                    userList.add(username);
+                }
+                writeToClient("USRSGRP " + userList.toString());
+            } else {
+                writeToClient("-ERR group doesn't exist!");
+            }
+        }
     }
 
     /**

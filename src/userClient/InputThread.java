@@ -20,6 +20,8 @@ public class InputThread extends Thread {
         JGRP,
         LGRP,
         KICK,
+        USRSGRP,
+        BCGRP
     }
     Socket connection;
     CopyOnWriteArrayList messageList;
@@ -58,6 +60,8 @@ public class InputThread extends Thread {
                             quit = true;
                         }
                     }
+
+
                     System.out.println(line);
                 } else if (messageList.size() > 0){
                     if (noResponse){
