@@ -171,9 +171,15 @@ public class ClientThread implements Runnable {
         if (failed){
             writeToClient("-ERR message is not a valid format!");
         } else {
-            Group group = new Group(message.getPayload().split(" ")[0],username);
-            data.addGroup(group);
-            writeToClient("+OK group made");
+            Group group = doesGroupExist(message);
+
+            if (group == null){
+                Group newGroup = new Group(message.getPayload().split(" ")[0],username);
+                data.addGroup(newGroup);
+                writeToClient("+OK group made");
+            } else {
+                writeToClient("-ERR Group already exists!");
+            }
         }
     }
 
