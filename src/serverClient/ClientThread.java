@@ -1,4 +1,6 @@
 package serverClient;
+import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -15,6 +17,8 @@ public class ClientThread implements Runnable {
     private OutputStream os;
     private Socket socket;
     private ServerState state;
+    public boolean fileTransferState = false;
+    public boolean answeredFile = false;
     private String username;
     private ServerConfiguration conf;
     private Set<ClientThread> threads;
@@ -95,7 +99,14 @@ public class ClientThread implements Runnable {
                             doBCSTGroup(message);
                             break;
                         case ACCPT:
-                            acceptFileTransfer();
+                            fileTransferState = true;
+                            answeredFile = true;
+                            break;
+                        case FILE:
+                            sendFile(message);
+                            break;
+                        case DND:
+                            answeredFile = true;
                             break;
                         case UNKOWN:
                             // Unkown command has been sent
@@ -139,7 +150,32 @@ public class ClientThread implements Runnable {
         }
     }
 
-    private void acceptFileTransfer() {
+    private void sendFile(Message message) {
+        String[] payload = message.getPayload().split(" ");
+        boolean found = false;
+        if (payload.length != 1) {
+            writeToClient("-ERR message is not a valid format!");
+        } else {
+            String receiver = payload[0];
+            FileDialog fd = new FileDialog(new JFrame());
+            fd.setVisible(true);
+            File[] files = fd.getFiles();
+            if (files.length > 0) {
+                File file = files[0];
+                for (ClientThread ct : threads) {
+                    if (ct.username.equals(receiver) && !username.equals(receiver)) {
+                        ct.writeToClient("Incoming file named: " + file.getName() + ". Do you want to accept? (ACCPT/DND)");
+                        found = true;
+                        new FileThread(ct, file);
+                    }
+                }
+                if (!found) {
+                    writeToClient("-ERR user not found!");
+                } else {
+                    writeToClient("+OK awaiting acceptance");
+                }
+            }
+        }
 
     }
 

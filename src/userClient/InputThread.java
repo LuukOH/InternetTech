@@ -22,7 +22,9 @@ public class InputThread extends Thread {
         KICK,
         ACCPT,
         USRSGRP,
-        BCGRP
+        BCGRP,
+        FILE,
+        DND
     }
     Socket connection;
     CopyOnWriteArrayList messageList;
