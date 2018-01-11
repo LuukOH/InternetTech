@@ -12,6 +12,7 @@ public class Message {
         JGRP,
         LGRP,
         KICK,
+        ACCPT,
         UNKOWN,
         USRSGRP,
         BCGRP

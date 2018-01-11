@@ -20,6 +20,7 @@ public class InputThread extends Thread {
         JGRP,
         LGRP,
         KICK,
+        ACCPT,
         USRSGRP,
         BCGRP
     }

@@ -94,6 +94,9 @@ public class ClientThread implements Runnable {
                         case BCGRP:
                             doBCSTGroup(message);
                             break;
+                        case ACCPT:
+                            acceptFileTransfer();
+                            break;
                         case UNKOWN:
                             // Unkown command has been sent
                             writeToClient("-ERR Unkown command");
@@ -134,6 +137,10 @@ public class ClientThread implements Runnable {
                 }
             }
         }
+    }
+
+    private void acceptFileTransfer() {
+
     }
 
     private void doDM(Message message) {
