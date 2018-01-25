@@ -24,6 +24,7 @@ public class InputThread extends Thread {
         USRSGRP,
         BCGRP,
         FILE,
+        SFILE,
         DND
     }
     Socket connection;
