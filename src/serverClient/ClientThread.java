@@ -130,7 +130,6 @@ public class ClientThread implements Runnable {
         if (!state.equals(CONNECTED)) {
             boolean isValidUsername = message.getPayload().matches("[a-zA-Z0-9_]{3,14}");
             if (!isValidUsername) {
-                state = FINISHED;
                 writeToClient("-ERR username has an invalid format (only characters, numbers and underscores are allowed)");
             } else {
                 // Check if user already exists.
