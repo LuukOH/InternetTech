@@ -13,10 +13,11 @@ public class Message {
         LGRP,
         KICK,
         ACCPT,
-        UNKOWN,
+        UNKNOWN,
         USRSGRP,
         BCGRP,
         FILE,
+        SFILE,
         DND
     }
 
@@ -32,7 +33,7 @@ public class Message {
      *          the message type cannot be derived.
      */
     public MessageType getMessageType() {
-        MessageType result = MessageType.UNKOWN;
+        MessageType result = MessageType.UNKNOWN;
         try{
             if (line != null && line.length() > 0) {
                 String[] splits = line.split("\\s+");
@@ -53,7 +54,7 @@ public class Message {
     public String getPayload() {
 
         // Return the raw line if we don't know what the message type is.
-        if (getMessageType().equals(MessageType.UNKOWN)) {
+        if (getMessageType().equals(MessageType.UNKNOWN)) {
             return line;
         }
 

@@ -8,10 +8,10 @@ import java.util.Random;
 import java.util.Set;
 
 import static serverClient.ServerState.*;
-import static serverClient.ServerState.FINISHED;
 
 public class ClientThread implements Runnable {
 
+    private FileThread ft;
     private DataInputStream is;
     private Data data;
     private OutputStream os;
@@ -102,15 +102,17 @@ public class ClientThread implements Runnable {
                             fileTransferState = true;
                             answeredFile = true;
                             break;
-                        case FILE:
+                        case SFILE:
                             sendFile(message);
+                        case FILE:
+                            ft.addFile("");
                             break;
                         case DND:
                             answeredFile = true;
                             break;
-                        case UNKOWN:
+                        case UNKNOWN:
                             // Unkown command has been sent
-                            writeToClient("-ERR Unkown command");
+                            writeToClient("-ERR Unknown command");
                             break;
                     }
                 }
@@ -125,9 +127,9 @@ public class ClientThread implements Runnable {
 
     private void doHELO(Message message) {
         // Check username format.
-        if (!state.equals(CONNECTED)){
+        if (!state.equals(CONNECTED)) {
             boolean isValidUsername = message.getPayload().matches("[a-zA-Z0-9_]{3,14}");
-            if(!isValidUsername) {
+            if (!isValidUsername) {
                 state = FINISHED;
                 writeToClient("-ERR username has an invalid format (only characters, numbers and underscores are allowed)");
             } else {
@@ -157,44 +159,36 @@ public class ClientThread implements Runnable {
             writeToClient("-ERR message is not a valid format!");
         } else {
             String receiver = payload[0];
-            FileDialog fd = new FileDialog(new JFrame());
-            fd.setVisible(true);
-            File[] files = fd.getFiles();
-            if (files.length > 0) {
-                File file = files[0];
-                for (ClientThread ct : threads) {
-                    if (ct.username.equals(receiver) && !username.equals(receiver)) {
-                        ct.writeToClient("Incoming file named: " + file.getName() + ". Do you want to accept? (ACCPT/DND)");
-                        found = true;
-                        new FileThread(ct, file);
-                    }
-                }
-                if (!found) {
-                    writeToClient("-ERR user not found!");
-                } else {
-                    writeToClient("+OK awaiting acceptance");
+            for (ClientThread ct : threads) {
+                if (ct.username.equals(receiver) && !username.equals(receiver)) {
+                    found = true;
+                    ft = new FileThread(this, ct);
                 }
             }
+            if (!found) {
+                writeToClient("-ERR user not found!");
+            } else {
+                writeToClient("+OK choose file");
+            }
         }
-
     }
 
     private void doDM(Message message) {
         String[] messageAndReceiver = message.getPayload().split(" ");
         boolean found = false;
-        if (messageAndReceiver.length < 2 || messageAndReceiver.length > 2){
+        if (messageAndReceiver.length < 2 || messageAndReceiver.length > 2) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             String receiver = messageAndReceiver[0];
             String payload = messageAndReceiver[1];
 
             for (ClientThread ct : threads) {
-                if (ct.username.equals(receiver) && !username.equals(receiver)){
+                if (ct.username.equals(receiver) && !username.equals(receiver)) {
                     ct.writeToClient("DM [" + username + "] " + payload);
                     found = true;
                 }
             }
-            if (!found){
+            if (!found) {
                 writeToClient("-ERR user not found!");
             } else {
                 writeToClient("+OK");
@@ -204,13 +198,13 @@ public class ClientThread implements Runnable {
 
     private void makeGroup(Message message) {
         boolean failed = oneArgumentCheck(message);
-        if (failed){
+        if (failed) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             Group group = doesGroupExist(message);
 
-            if (group == null){
-                Group newGroup = new Group(message.getPayload().split(" ")[0],username);
+            if (group == null) {
+                Group newGroup = new Group(message.getPayload().split(" ")[0], username);
                 data.addGroup(newGroup);
                 writeToClient("+OK group made");
             } else {
@@ -221,14 +215,14 @@ public class ClientThread implements Runnable {
 
     private void joinGroup(Message message) {
         boolean failed = oneArgumentCheck(message);
-        if (failed){
+        if (failed) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             boolean alreadyIn = false;
 
             Group group = doesGroupExist(message);
 
-            if (group != null){
+            if (group != null) {
                 for (String string : group.getUsers()) {
                     if (string.equals(username)) {
                         writeToClient("-ERR you are already in that group!");
@@ -246,18 +240,18 @@ public class ClientThread implements Runnable {
         }
     }
 
-    private Group doesGroupExist(Message message){
+    private Group doesGroupExist(Message message) {
         for (Group group : data.getGroups()) {
-            if (group.getName().equals(message.getPayload().split(" ")[0])){
+            if (group.getName().equals(message.getPayload().split(" ")[0])) {
                 return group;
             }
         }
         return null;
     }
 
-    private boolean oneArgumentCheck(Message message){
+    private boolean oneArgumentCheck(Message message) {
         String[] fullMessage = message.getPayload().split(" ");
-        if (fullMessage.length > 1 || fullMessage[0].equals("")){
+        if (fullMessage.length > 1 || fullMessage[0].equals("")) {
             return true;
         } else {
             return false;
@@ -266,20 +260,20 @@ public class ClientThread implements Runnable {
 
     private void leaveGroup(Message message) {
         boolean failed = oneArgumentCheck(message);
-        if (failed){
+        if (failed) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             boolean in = false;
 
             Group group = doesGroupExist(message);
 
-            if (group != null){
+            if (group != null) {
                 for (String string : group.getUsers()) {
                     if (string.equals(username)) {
                         in = true;
                         group.removeUser(username);
-                        if (username.equals(group.getOwner())){
-                            if (group.getUsers().size() > 0){
+                        if (username.equals(group.getOwner())) {
+                            if (group.getUsers().size() > 0) {
                                 group.setOwner(group.getUsers().get(0));
                             } else {
                                 data.removeGroup(group);
@@ -299,28 +293,28 @@ public class ClientThread implements Runnable {
 
     private void doKICK(Message message) {
         String[] fullMessage = message.getPayload().split(" ");
-        if (fullMessage.length < 2 || fullMessage.length > 2){
+        if (fullMessage.length < 2 || fullMessage.length > 2) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             boolean userIn = false;
 
             Group group = doesGroupExist(message);
 
-            if (group != null){
-                if (group.getOwner().equals(username)){
-                    for (String string: group.getUsers()){
-                        if (string.equals(fullMessage[1]) && !username.equals(fullMessage[1])){
+            if (group != null) {
+                if (group.getOwner().equals(username)) {
+                    for (String string : group.getUsers()) {
+                        if (string.equals(fullMessage[1]) && !username.equals(fullMessage[1])) {
                             userIn = true;
                             writeToClient("+OK user is kicked!");
                             group.removeUser(fullMessage[1]);
-                            for (ClientThread ct: threads){
-                                if (ct.username.equals(string)){
+                            for (ClientThread ct : threads) {
+                                if (ct.username.equals(string)) {
                                     ct.writeToClient("GRPS you have been kicked from group: " + group.getName());
                                 }
                             }
                         }
                     }
-                    if (!userIn){
+                    if (!userIn) {
                         writeToClient("-ERR The specified user is not in this group! (remember you can't kick yourself as owner)");
                     }
                 } else {
@@ -336,7 +330,7 @@ public class ClientThread implements Runnable {
         ArrayList userList = new ArrayList();
         System.out.println("All users currently online:");
         for (ClientThread ct : threads) {
-            if (ct.state.equals(CONNECTED)){
+            if (ct.state.equals(CONNECTED)) {
                 userList.add(ct.username);
             }
         }
@@ -346,7 +340,7 @@ public class ClientThread implements Runnable {
     private void getGroups() {
         ArrayList<Group> groups = data.getGroups();
         ArrayList groupNames = new ArrayList();
-        if (groups.size() == 0){
+        if (groups.size() == 0) {
             writeToClient("-ERR no groups exist");
         } else {
             for (int i = 0; i < groups.size(); i++) {
@@ -366,18 +360,18 @@ public class ClientThread implements Runnable {
         writeToClient("+OK");
     }
 
-    private void doBCSTGroup(Message message){
+    private void doBCSTGroup(Message message) {
         String[] fullMessage = message.getPayload().split(" ");
-        if (fullMessage.length < 2 || fullMessage.length > 2){
+        if (fullMessage.length < 2 || fullMessage.length > 2) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             Group group = doesGroupExist(message);
 
-            if (group != null){
-                for (String useName :group.getUsers()){
-                    for (ClientThread ct: threads){
-                        if (useName.equals(ct.getUsername())){
-                            if (!useName.equals(username)){
+            if (group != null) {
+                for (String useName : group.getUsers()) {
+                    for (ClientThread ct : threads) {
+                        if (useName.equals(ct.getUsername())) {
+                            if (!useName.equals(username)) {
                                 ct.writeToClient("BCSTGRP [" + group.getName() + "] " + fullMessage[1]);
                             }
                         }
@@ -390,16 +384,16 @@ public class ClientThread implements Runnable {
         }
     }
 
-    private void getUsersFromGroup(Message message){
+    private void getUsersFromGroup(Message message) {
         boolean failed = oneArgumentCheck(message);
         ArrayList userList = new ArrayList();
-        if (failed){
+        if (failed) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             Group group = doesGroupExist(message);
 
-            if (group != null){
-                for (String username: group.getUsers()){
+            if (group != null) {
+                for (String username : group.getUsers()) {
                     userList.add(username);
                 }
                 writeToClient("USRSGRP " + userList.toString());
@@ -418,7 +412,7 @@ public class ClientThread implements Runnable {
             System.out.println("[DROP CONNECTION] " + getUsername());
             threads.remove(this);
             socket.close();
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             System.out.println("Exception when closing outputstream: " + ex.getMessage());
         }
         state = FINISHED;
@@ -426,9 +420,10 @@ public class ClientThread implements Runnable {
 
     /**
      * Write a message to this client thread.
-     * @param message   The message to be sent to the (connected) client.
+     *
+     * @param message The message to be sent to the (connected) client.
      */
-    private void writeToClient(String message) {
+    public void writeToClient(String message) {
         boolean shouldDropPacket = false;
         boolean shouldCorruptPacket = false;
 
@@ -455,7 +450,7 @@ public class ClientThread implements Runnable {
 
         // Do the actual message sending here.
         if (!shouldDropPacket) {
-            if (shouldCorruptPacket){
+            if (shouldCorruptPacket) {
                 message = corrupt(message);
                 System.out.println("[CORRUPT] " + message);
             }
@@ -472,13 +467,14 @@ public class ClientThread implements Runnable {
     /**
      * This methods implements a (naive) simulation of a corrupt message by replacing
      * some charaters at random indexes with the charater X.
-     * @param message   The message to be corrupted.
-     * @return  Returns the message with some charaters replaced with X's.
+     *
+     * @param message The message to be corrupted.
+     * @return Returns the message with some charaters replaced with X's.
      */
     private String corrupt(String message) {
         Random random = new Random();
         int x = random.nextInt(4);
-        char[] messageChars =  message.toCharArray();
+        char[] messageChars = message.toCharArray();
 
         while (x < messageChars.length) {
             messageChars[x] = 'X';
@@ -490,9 +486,10 @@ public class ClientThread implements Runnable {
 
     /**
      * Util method to print (debug) information about the server's incoming and outgoing messages.
-     * @param isIncoming    Indicates whether the message was an incoming message. If false then
-     *                      an outgoing message is assumed.
-     * @param message       The message received or sent.
+     *
+     * @param isIncoming Indicates whether the message was an incoming message. If false then
+     *                   an outgoing message is assumed.
+     * @param message    The message received or sent.
      */
     private void logMessage(boolean isIncoming, String message) {
         String logMessage;
@@ -512,7 +509,7 @@ public class ClientThread implements Runnable {
         }
 
         // Log debug messages with or without colors.
-        if(conf.isShowColors()){
+        if (conf.isShowColors()) {
             System.out.println(colorCode + logMessage + conf.RESET_CLI_COLORS);
         } else {
             System.out.println(logMessage);

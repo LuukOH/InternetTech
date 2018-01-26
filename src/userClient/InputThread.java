@@ -27,6 +27,7 @@ public class InputThread extends Thread {
         USRSGRP,
         BCGRP,
         FILE,
+        SFILE,
         DND
     }
     SSLSocket connection;
