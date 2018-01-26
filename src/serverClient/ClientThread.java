@@ -1,8 +1,8 @@
 package serverClient;
+import javax.net.ssl.SSLSocket;
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Set;
@@ -15,7 +15,7 @@ public class ClientThread implements Runnable {
     private DataInputStream is;
     private Data data;
     private OutputStream os;
-    private Socket socket;
+    private SSLSocket socket;
     private ServerState state;
     public boolean fileTransferState = false;
     public boolean answeredFile = false;
@@ -23,7 +23,7 @@ public class ClientThread implements Runnable {
     private ServerConfiguration conf;
     private Set<ClientThread> threads;
 
-    public ClientThread(Socket socket) {
+    public ClientThread(SSLSocket socket) {
         data = Data.getInstance();
         this.state = INIT;
         this.socket = socket;

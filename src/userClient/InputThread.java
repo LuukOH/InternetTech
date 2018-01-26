@@ -1,5 +1,8 @@
 package userClient;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.Socket;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,15 +29,17 @@ public class InputThread extends Thread {
         FILE,
         DND
     }
-    Socket connection;
+    SSLSocket connection;
     CopyOnWriteArrayList messageList;
     private ChatClient chatClient;
     boolean quit = false;
     boolean noResponse = false;
     boolean dropRetry = false;
     long time;
+    private InputStream inputStream;
+    private BufferedReader reader;
 
-    public InputThread(Socket connection,CopyOnWriteArrayList copyOnWriteArrayList,ChatClient chatClient) {
+    public InputThread(SSLSocket connection,CopyOnWriteArrayList copyOnWriteArrayList,ChatClient chatClient) {
         this.connection = connection;
         messageList = copyOnWriteArrayList;
         this.chatClient = chatClient;
@@ -42,17 +47,19 @@ public class InputThread extends Thread {
 
     @Override
     public void run() {
-        InputStream inputStream;
+
         try {
             inputStream = connection.getInputStream();
             String line;
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            reader = new BufferedReader(new InputStreamReader(inputStream));
 
             while (!quit){
-                if (reader.ready()){
+                line = reader.readLine();
+                if (line != null && !line.equals("")){
+                    chatClient.resetTimer();
                     dropRetry = false;
                     ServerMessage message = ServerMessage.UNKNOWN;
-                    line = reader.readLine();
+
 
 
                     message = parseServerAnswer(message,line);
@@ -66,31 +73,6 @@ public class InputThread extends Thread {
 
 
                     System.out.println(line);
-                } else if (messageList.size() > 0){
-                    if (noResponse){
-                        long timeTaken = System.currentTimeMillis() - time;
-                        if (timeTaken > 1000 && timeTaken < 10000){
-                            if (!dropRetry) {
-                                PrintWriter writer = new PrintWriter(connection.getOutputStream());
-                                writer.println(messageList.get(messageList.size() - 1));
-                                writer.flush();
-                            }
-                        } else if (timeTaken > 10000 && dropRetry){
-                            time = System.currentTimeMillis();
-                            System.out.println("connection failed! trying to reconnect.");
-                            connection = new Socket("localhost", 1337);
-                            inputStream = connection.getInputStream();
-                            reader = new BufferedReader(new InputStreamReader(inputStream));
-
-                            chatClient.status = ChatClient.RETRY;
-                            dropRetry = false;
-                        } else {
-                            dropRetry = true;
-                        }
-                    } else {
-                        time = System.currentTimeMillis();
-                        noResponse = true;
-                    }
                 }
             }
             connection.close();
@@ -118,14 +100,18 @@ public class InputThread extends Thread {
         } else {
             if (messageList.size() > 0){
                 messageList.remove(messageList.size() - 1);
-                dropRetry = false;
-                noResponse = false;
             }
         }
         return message;
     }
 
-    public Socket getConnection(){
+    public void setConnection(SSLSocket connection)throws IOException {
+        this.connection = connection;
+        inputStream = connection.getInputStream();
+        reader = new BufferedReader(new InputStreamReader(inputStream));
+    }
+
+    public SSLSocket getConnection(){
         return connection;
     }
 }

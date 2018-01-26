@@ -1,13 +1,17 @@
 package serverClient;
 
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.*;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
-
-import static serverClient.ServerState.*;
 
 public class Server {
 
@@ -29,14 +33,27 @@ public class Server {
     public void run() {
         // Create a socket to wait for clients.
         try {
-            serverSocket = new ServerSocket(conf.SERVER_PORT);
+            File dir = new File(new File("keystore.test").getAbsolutePath());
+            SSLContext context = SSLContext.getInstance("TLS");
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+
+            keyStore.load(new FileInputStream(dir.getPath()), "storepass".toCharArray());
+            keyManagerFactory.init(keyStore, "keypass".toCharArray());
+            context.init(keyManagerFactory.getKeyManagers(), null, null);
+
+            ServerSocketFactory factory = context.getServerSocketFactory();
+
+            serverSocket = factory.createServerSocket(conf.SERVER_PORT);
+
+
             threads = new HashSet<>();
             Data data = Data.getInstance();
             data.setThreads(threads);
 
             while (true) {
                 // Wait for an incoming client-connection request (blocking).
-                Socket socket = serverSocket.accept();
+                SSLSocket socket = (SSLSocket) serverSocket.accept();
 
                 // When a new connection has been established, start a new thread.
                 ClientThread ct = new ClientThread(socket);
@@ -50,6 +67,8 @@ public class Server {
                     new Thread(dct).start();
                 }
             }
+        }catch (GeneralSecurityException ge){
+            ge.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
