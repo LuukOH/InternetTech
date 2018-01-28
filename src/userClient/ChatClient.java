@@ -13,6 +13,7 @@ public class ChatClient extends Thread {
     private TimerThread timerThread;
     private SSLSocket connection;
     private InputThread inputThread;
+    private File filetoBeSent;
 
     public static void main(String[] args) {
         ChatClient chatClient = new ChatClient();
@@ -55,8 +56,8 @@ public class ChatClient extends Thread {
                     InputThread.ServerMessage message = inputThread.parseServerAnswer(InputThread.ServerMessage.UNKNOWN,input);
                     if (message == InputThread.ServerMessage.SFILE){
                         String fileName = input.split(" ")[input.split(" ").length-1];
-                        File file = new File(new File(fileName).getAbsolutePath());
-                        if (file.exists()){
+                        filetoBeSent = new File(new File(fileName).getAbsolutePath());
+                        if (filetoBeSent.exists()){
                             writer.println(input);
                             writer.flush();
                         } else {
@@ -105,5 +106,9 @@ public class ChatClient extends Thread {
         if (timerThread != null) {
             timerThread.setReply();
         }
+    }
+
+    public File getFiletoBeSent() {
+        return filetoBeSent;
     }
 }

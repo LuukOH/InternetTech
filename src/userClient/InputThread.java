@@ -5,6 +5,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.Socket;
+import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 
@@ -33,12 +34,14 @@ public class InputThread extends Thread {
     }
     //variabelen en objecten
     private SSLSocket connection;
+    private Socket receiver;
     private CopyOnWriteArrayList messageList;
     private ChatClient chatClient;
     boolean quit = false;
     boolean dropRetry = false;
     private InputStream inputStream;
     private BufferedReader reader;
+    private SendAndReceiveFile fileManager;
 
     public InputThread(SSLSocket connection,CopyOnWriteArrayList copyOnWriteArrayList,ChatClient chatClient) {
         this.connection = connection;
@@ -70,10 +73,27 @@ public class InputThread extends Thread {
                         if (splitInput[splitInput.length-1].equals("Goodbye")){
                             quit = true;
                         }
+                        System.out.println(line);
+                    } else if (message.equals(ServerMessage.SFILE) && line.contains("file is send")){
+                        //maak een socket aan op de server voor het verzenden van de file
+                        int serverPort = Integer.parseInt(line.split(";")[1]);
+                        Socket socket = new Socket("localhost",serverPort);
+                        System.out.println("SFILE file is being send");
+                        fileManager = new SendAndReceiveFile(true,socket);
+                        fileManager.setFile(chatClient.getFiletoBeSent());
+                        fileManager.start();
+                    } else if (message.equals(ServerMessage.SFILE) && line.contains("file is being received")){
+                        //maak een socket aan op de server voor het receiven van een file
+                        int serverPort = Integer.parseInt(line.split(";")[1]);
+                        receiver = new Socket("localhost",serverPort);
+                        System.out.println("SFILE file is being received(makes file png by default change by hand sorry!)");
+                    } else if (message.equals(ServerMessage.SFILE) && line.contains("receiving done")){
+                        fileManager = new SendAndReceiveFile(false,receiver);
+                        fileManager.start();
+                        System.out.println(line + " (mocht de file niet laden alt-tab 2 keer of sluit de client af(weird bug))");
+                    } else{
+                        System.out.println(line);
                     }
-
-
-                    System.out.println(line);
                 }
             }
             connection.close();

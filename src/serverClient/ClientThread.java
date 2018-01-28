@@ -1,7 +1,5 @@
 package serverClient;
 import javax.net.ssl.SSLSocket;
-import javax.swing.*;
-import java.awt.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Random;
@@ -17,11 +15,13 @@ public class ClientThread implements Runnable {
     private OutputStream os;
     private SSLSocket socket;
     private ServerState state;
-    public boolean fileTransferState = false;
-    public boolean answeredFile = false;
+    private boolean fileTransferState = false;
+    private boolean answeredFile = false;
+    private boolean fileIsBeingRequested = false;
     private String username;
     private ServerConfiguration conf;
     private Set<ClientThread> threads;
+    private String fileReceiveFrom;
 
     public ClientThread(SSLSocket socket) {
         data = Data.getInstance();
@@ -33,6 +33,34 @@ public class ClientThread implements Runnable {
 
     public String getUsername() {
         return username;
+    }
+
+    public boolean isFileTransferState() {
+        return fileTransferState;
+    }
+
+    public boolean isAnsweredFile() {
+        return answeredFile;
+    }
+
+    public void setAnsweredFile(boolean answeredFile) {
+        this.answeredFile = answeredFile;
+    }
+
+    public void setFileIsBeingRequested(boolean fileIsBeingRequested) {
+        this.fileIsBeingRequested = fileIsBeingRequested;
+    }
+
+    public void setFileTransferState(boolean fileTransferState) {
+        this.fileTransferState = fileTransferState;
+    }
+
+    public void setFt(FileThread ft) {
+        this.ft = ft;
+    }
+
+    public FileThread getFt() {
+        return ft;
     }
 
     public void run() {
@@ -99,8 +127,7 @@ public class ClientThread implements Runnable {
                             doBCSTGroup(message);
                             break;
                         case ACCPT:
-                            fileTransferState = true;
-                            answeredFile = true;
+                            acceptFIlE();
                             break;
                         case SFILE:
                             sendFile(message);
@@ -108,7 +135,11 @@ public class ClientThread implements Runnable {
 //                            ft.addFile("");
                             break;
                         case DND:
-                            answeredFile = true;
+                            if (fileIsBeingRequested){
+                                answeredFile = true;
+                                fileIsBeingRequested = false;
+                                ft.giveAcceptanceOrDenial();
+                            }
                             break;
                         case UNKNOWN:
                             // Unkown command has been sent
@@ -151,6 +182,15 @@ public class ClientThread implements Runnable {
         }
     }
 
+    private void acceptFIlE(){
+        if (fileIsBeingRequested){
+            fileTransferState = true;
+            answeredFile = true;
+            fileIsBeingRequested = false;
+            ft.giveAcceptanceOrDenial();
+        }
+    }
+
     private void sendFile(Message message) {
         String[] messageAndReceiver = message.getPayload().split(" ");
         boolean found = false;
@@ -158,16 +198,16 @@ public class ClientThread implements Runnable {
             writeToClient("-ERR message is not a valid format!");
         } else {
             String receiver = messageAndReceiver[0];
+            fileReceiveFrom = receiver;
             for (ClientThread ct : threads) {
                 if (ct.username.equals(receiver) && !username.equals(receiver)) {
                     found = true;
-                    ft = new FileThread(this, ct);
+                    ft = new FileThread(this, ct,messageAndReceiver[1]);
+                    ft.start();
                 }
             }
             if (!found) {
                 writeToClient("-ERR user not found!");
-            } else {
-                writeToClient("+OK waiting for ACCPT/DND");
             }
         }
     }
