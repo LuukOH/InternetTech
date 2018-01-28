@@ -1,6 +1,7 @@
 package serverClient;
 
 public class Message {
+    //het protocol
     public enum MessageType {
         HELO,
         BCST,

@@ -3,6 +3,7 @@ package serverClient;
 import java.util.ArrayList;
 
 public class Group {
+    //variabelen
     private String name;
     private String owner;
     private ArrayList<String> users;
@@ -14,6 +15,7 @@ public class Group {
         addUser(owner);
     }
 
+    //getters en setters/adders
     public String getName() {
         return name;
     }

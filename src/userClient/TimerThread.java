@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 
 public class TimerThread extends Thread {
 
+    //variabelen
     private String message;
     private boolean noReply = true;
     private boolean repeat = false;
@@ -20,9 +21,13 @@ public class TimerThread extends Thread {
 
     @Override
     public void run() {
+        //pak de tijd op het moment van het starten van de thread
         long time = System.currentTimeMillis();
+        //zolan er nog geen bericht van de server ontvangen is doe het volgende
         while (noReply){
+            //pak de tijd dat deze thread al loopt
             long timeTaken = System.currentTimeMillis() - time;
+            //als er een kans is dat de server gewoon lang op zich laat wachten stuur het bericht nog een keer
             if (timeTaken > 1000 && timeTaken < 10000){
                 try {
                     if (!repeat){
@@ -34,6 +39,7 @@ public class TimerThread extends Thread {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                //als het langer duurt dan 10 seconden probeer opnieuw connectie te maken
             } else if (timeTaken > 10000){
                 System.out.println("connection failed! trying to reconnect.");
                 try {

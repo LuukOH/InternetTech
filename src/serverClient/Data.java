@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Data {
+    //alle data voor goepen
     private static Data data = null;
     private ArrayList<Group> groups;
     private ServerConfiguration conf;

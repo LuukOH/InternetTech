@@ -3,11 +3,9 @@ package serverClient;
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import java.io.*;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.security.*;
 import java.util.HashSet;
 import java.util.Random;
@@ -33,6 +31,7 @@ public class Server {
     public void run() {
         // Create a socket to wait for clients.
         try {
+            //SSLServerSocket die voor een encrypted verbinding zorgt met de client samen
             File dir = new File(new File("keystore.test").getAbsolutePath());
             SSLContext context = SSLContext.getInstance("TLS");
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");

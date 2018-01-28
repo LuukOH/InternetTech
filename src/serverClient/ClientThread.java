@@ -105,7 +105,7 @@ public class ClientThread implements Runnable {
                         case SFILE:
                             sendFile(message);
                         case FILE:
-                            ft.addFile("");
+//                            ft.addFile("");
                             break;
                         case DND:
                             answeredFile = true;
@@ -152,12 +152,12 @@ public class ClientThread implements Runnable {
     }
 
     private void sendFile(Message message) {
-        String[] payload = message.getPayload().split(" ");
+        String[] messageAndReceiver = message.getPayload().split(" ");
         boolean found = false;
-        if (payload.length != 1) {
+        if (messageAndReceiver.length < 2 || messageAndReceiver.length > 2) {
             writeToClient("-ERR message is not a valid format!");
         } else {
-            String receiver = payload[0];
+            String receiver = messageAndReceiver[0];
             for (ClientThread ct : threads) {
                 if (ct.username.equals(receiver) && !username.equals(receiver)) {
                     found = true;
@@ -167,12 +167,13 @@ public class ClientThread implements Runnable {
             if (!found) {
                 writeToClient("-ERR user not found!");
             } else {
-                writeToClient("+OK choose file");
+                writeToClient("+OK waiting for ACCPT/DND");
             }
         }
     }
 
     private void doDM(Message message) {
+        //pak de message en kijk of de hoeveelheid argumenten kloppen
         String[] messageAndReceiver = message.getPayload().split(" ");
         boolean found = false;
         if (messageAndReceiver.length < 2 || messageAndReceiver.length > 2) {
@@ -180,13 +181,15 @@ public class ClientThread implements Runnable {
         } else {
             String receiver = messageAndReceiver[0];
             String payload = messageAndReceiver[1];
-
+            //loop door de clientThreads en kijk of de user er in zit
             for (ClientThread ct : threads) {
                 if (ct.username.equals(receiver) && !username.equals(receiver)) {
+                    //stuur het bericht als dat zo is
                     ct.writeToClient("DM [" + username + "] " + payload);
                     found = true;
                 }
             }
+            //geef bericht of het gelukt is of niet
             if (!found) {
                 writeToClient("-ERR user not found!");
             } else {
@@ -196,10 +199,12 @@ public class ClientThread implements Runnable {
     }
 
     private void makeGroup(Message message) {
+        //kijk de argumenten goed zijn
         boolean failed = oneArgumentCheck(message);
         if (failed) {
             writeToClient("-ERR message is not a valid format!");
         } else {
+            //maak de groep als die nog niet bestaat
             Group group = doesGroupExist(message);
 
             if (group == null) {
@@ -213,22 +218,24 @@ public class ClientThread implements Runnable {
     }
 
     private void joinGroup(Message message) {
+        //kijk of de argumenten goed zijn
         boolean failed = oneArgumentCheck(message);
         if (failed) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             boolean alreadyIn = false;
-
+            //kijk of de groep bestaat
             Group group = doesGroupExist(message);
 
             if (group != null) {
+                //kijk of je er niet al in zit
                 for (String string : group.getUsers()) {
                     if (string.equals(username)) {
                         writeToClient("-ERR you are already in that group!");
                         alreadyIn = true;
                     }
                 }
-
+                //zet de user er anders in
                 if (!alreadyIn) {
                     group.addUser(username);
                     writeToClient("+OK you were added in the group!");
@@ -240,6 +247,7 @@ public class ClientThread implements Runnable {
     }
 
     private Group doesGroupExist(Message message) {
+        //loop door alle groepen en kijk of de groep al bestaat en return die groep als hij al bestaat
         for (Group group : data.getGroups()) {
             if (group.getName().equals(message.getPayload().split(" ")[0])) {
                 return group;
@@ -249,6 +257,7 @@ public class ClientThread implements Runnable {
     }
 
     private boolean oneArgumentCheck(Message message) {
+        //kijk of er maar 1 argument wordt meegegeven
         String[] fullMessage = message.getPayload().split(" ");
         if (fullMessage.length > 1 || fullMessage[0].equals("")) {
             return true;
@@ -258,6 +267,7 @@ public class ClientThread implements Runnable {
     }
 
     private void leaveGroup(Message message) {
+        //kijk of het aantal argumenten klopt
         boolean failed = oneArgumentCheck(message);
         if (failed) {
             writeToClient("-ERR message is not a valid format!");
@@ -265,12 +275,15 @@ public class ClientThread implements Runnable {
             boolean in = false;
 
             Group group = doesGroupExist(message);
-
+            //kijk of de groep bestaat
             if (group != null) {
+                //kijk of je in die groep zit
                 for (String string : group.getUsers()) {
                     if (string.equals(username)) {
                         in = true;
                         group.removeUser(username);
+                        //kijk of je de owenr was. als dat zo is wordt de volgende user de owner
+                        //als er geen volgende user is delete de groep dan
                         if (username.equals(group.getOwner())) {
                             if (group.getUsers().size() > 0) {
                                 group.setOwner(group.getUsers().get(0));
@@ -291,6 +304,7 @@ public class ClientThread implements Runnable {
     }
 
     private void doKICK(Message message) {
+        //kijk of het aantal argumenten klopt
         String[] fullMessage = message.getPayload().split(" ");
         if (fullMessage.length < 2 || fullMessage.length > 2) {
             writeToClient("-ERR message is not a valid format!");
@@ -298,9 +312,11 @@ public class ClientThread implements Runnable {
             boolean userIn = false;
 
             Group group = doesGroupExist(message);
-
+            //kijk of de groep bestaat
             if (group != null) {
+                //kijk of jij de owner bent van die groep
                 if (group.getOwner().equals(username)) {
+                    //ga door alle users en kijk of degene die je wil kicken er wel in zit
                     for (String string : group.getUsers()) {
                         if (string.equals(fullMessage[1]) && !username.equals(fullMessage[1])) {
                             userIn = true;
@@ -326,6 +342,7 @@ public class ClientThread implements Runnable {
     }
 
     private void getUsers() {
+        //pak alle users die online zijn en print die
         ArrayList userList = new ArrayList();
         System.out.println("All users currently online:");
         for (ClientThread ct : threads) {
@@ -337,6 +354,7 @@ public class ClientThread implements Runnable {
     }
 
     private void getGroups() {
+        //pak alle groepen die er zijn en print die (behalve als er geen groepen zijn)
         ArrayList<Group> groups = data.getGroups();
         ArrayList groupNames = new ArrayList();
         if (groups.size() == 0) {
@@ -360,18 +378,19 @@ public class ClientThread implements Runnable {
     }
 
     private void doBCSTGroup(Message message) {
+        //kijk of het aantal argumenten klopt
         String[] fullMessage = message.getPayload().split(" ");
         if (fullMessage.length < 2 || fullMessage.length > 2) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             Group group = doesGroupExist(message);
-
+            //als de groep bestaat pak alle users uit die groep en stuur ze het bericht
             if (group != null) {
                 for (String useName : group.getUsers()) {
                     for (ClientThread ct : threads) {
                         if (useName.equals(ct.getUsername())) {
                             if (!useName.equals(username)) {
-                                ct.writeToClient("BCSTGRP [" + group.getName() + "] " + fullMessage[1]);
+                                ct.writeToClient("BCGRP [" + group.getName() + "] " + fullMessage[1]);
                             }
                         }
                     }
@@ -384,13 +403,14 @@ public class ClientThread implements Runnable {
     }
 
     private void getUsersFromGroup(Message message) {
+        //kijk of het aantal argumenten klopt
         boolean failed = oneArgumentCheck(message);
         ArrayList userList = new ArrayList();
         if (failed) {
             writeToClient("-ERR message is not a valid format!");
         } else {
             Group group = doesGroupExist(message);
-
+            //als de groep bestaat kijk dan welke users erin zitten en print dat
             if (group != null) {
                 for (String username : group.getUsers()) {
                     userList.add(username);
